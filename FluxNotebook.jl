@@ -4,12 +4,14 @@
 using Markdown
 using InteractiveUtils
 
-# ╔═╡ fd49a910-94ee-485e-9c0f-4c99774ecb9c
+# ╔═╡ 3f2f70cc-4b66-43b9-a4e8-f1b7bfbde649
 begin
+	# Import the needed ML libraries
 	using CUDA
 	using Flux
 	using MLDatasets
 	using Plots
+	using PlutoUI
 end
 
 # ╔═╡ 2b86039e-ffb3-41a9-949d-c1d7c8d14a2a
@@ -29,24 +31,66 @@ Getting Started
 
 First, we will import the needed libraries in order to make the demonstration.
 
-CUDA - A library that allows us to train our model on a Nvidia GPU if supported for better performance
+- CUDA - Allows us to train our model on a Nvidia GPU if supported for better performance
 
-Flux - The machine learning library that we are demonstrating in this notebook
 
-MLDatasets - The package we will use to get our data for training and testing. It contains a wide array of classic ML Datasets, feel free to explore them yourselves!
+- Flux - The machine learning library that we are demonstrating in this notebook
 
-Plots - A very simple plotting library to visualize our data and plot our results.
+
+- MLDatasets - The package we will use to get our data for training and testing. It contains a wide array of classic ML Datasets, feel free to explore them yourselves!
+
+
+- Plots - A simple plotting library to visualize our data and plot our results.
 """
 
-# ╔═╡ 20c37458-3432-11ec-217d-e77d33b17d24
-# Test plot to see if everything works
+# ╔═╡ 3ecf19af-6979-4856-9524-2571f1b3d69e
+md"""
+Loading the datasets
+--------------------
+Now let's load the MNIST dataset using the MLDatasets package.
 
+Doing so is very simple, we simply need to call the methods:
+- MNIST.traindata()
+- MNIST.testdata()
+
+###### Training dataset
+train\_x will represent the training images\
+train\_y is the labels of the training images
+
+###### Testing dataset
+test\_x will represent the testing images\
+test\_y is the labels of the testing images
+
+
+Once we are done loading the datasets into variables, let's have a look at a few samples!
+"""
+
+# ╔═╡ 15bd08cb-d7fa-4221-a4dd-1e966919aad3
 begin
-	x = 1:20
-	y = [i^2 for i in x]
+	# Needed to load the dataset correctly
+	ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
 	
-	Plots.plot(x, y)
+	# Loading the training data
+	train_x, train_y = MNIST.traindata(Float32)
+	
+	# Loading the test data
+	test_x, test_y = MNIST.testdata(Float32)
+	
+	# Creating an array of images for visualization
+	imgs = Matrix{Gray{Float32}}[]
+	
+	for i in 1:9
+		push!(imgs, Gray.(train_x[:, :, i]))
+	end
+	
+	# Ploting the images
+	plot(plot(imgs[1]), plot(imgs[2]), plot(imgs[3]),
+		 plot(imgs[4]), plot(imgs[5]), plot(imgs[6]),
+		 plot(imgs[7]), plot(imgs[8]), plot(imgs[9]))
 end
+
+# ╔═╡ 1bbfac84-1827-4a77-a76d-9ad6ecac4c32
+
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -55,12 +99,14 @@ CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Flux = "587475ba-b771-5e3f-ad9e-33799f191a9c"
 MLDatasets = "eb30cadb-4394-5ae3-aed4-317e484a6458"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
 CUDA = "~3.5.0"
 Flux = "~0.12.7"
 MLDatasets = "~0.5.12"
-Plots = "~1.22.7"
+Plots = "~1.23.0"
+PlutoUI = "~0.7.16"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -89,9 +135,9 @@ uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 
 [[ArrayInterface]]
 deps = ["Compat", "IfElse", "LinearAlgebra", "Requires", "SparseArrays", "Static"]
-git-tree-sha1 = "1d6835607e9f214cb4210310868f8cf07eb0facc"
+git-tree-sha1 = "49fe2b94edd1a54ac4919b33432daefd8e6c0f28"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "3.1.34"
+version = "3.1.35"
 
 [[Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -159,16 +205,16 @@ uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
 version = "1.16.1+0"
 
 [[ChainRules]]
-deps = ["ChainRulesCore", "Compat", "LinearAlgebra", "Random", "Statistics"]
-git-tree-sha1 = "74c737978316e19e0706737542037c468b21a8d9"
+deps = ["ChainRulesCore", "Compat", "LinearAlgebra", "Random", "RealDot", "Statistics"]
+git-tree-sha1 = "035ef8a5382a614b2d8e3091b6fdbb1c2b050e11"
 uuid = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-version = "1.11.6"
+version = "1.12.1"
 
 [[ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "d9e40e3e370ee56c5b57e0db651d8f92bce98fea"
+git-tree-sha1 = "0541d306de71e267c1a724f84d44bbc981f287b4"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.10.1"
+version = "1.10.2"
 
 [[CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -448,6 +494,23 @@ deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll",
 git-tree-sha1 = "8a954fed8ac097d5be04921d595f741115c1b2ad"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "2.8.1+0"
+
+[[Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "8d511d5b81240fc8e6802386302675bdf47737b9"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.4"
+
+[[HypertextLiteral]]
+git-tree-sha1 = "5efcf53d798efede8fee5b2c8b09284be359bf24"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "0.9.2"
+
+[[IOCapture]]
+deps = ["Logging", "Random"]
+git-tree-sha1 = "f7be53659ab06ddc986428d3a9dcc95f6fa6705a"
+uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
+version = "0.2.2"
 
 [[IRTools]]
 deps = ["InteractiveUtils", "MacroTools", "Test"]
@@ -790,9 +853,15 @@ version = "1.0.15"
 
 [[Plots]]
 deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "GeometryBasics", "JSON", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "PlotThemes", "PlotUtils", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "UUIDs"]
-git-tree-sha1 = "e7523dd03eb3aaac09f743c23c1a553a8c834416"
+git-tree-sha1 = "68a8a1f4d5763271d38847f0e22d67a7a61b6565"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-version = "1.22.7"
+version = "1.23.0"
+
+[[PlutoUI]]
+deps = ["Base64", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
+git-tree-sha1 = "4c8a7d080daca18545c56f1cac28710c362478f3"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.16"
 
 [[Preferences]]
 deps = ["TOML"]
@@ -810,9 +879,9 @@ uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 
 [[PyCall]]
 deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
-git-tree-sha1 = "169bb8ea6b1b143c5cf57df6d34d022a7b60c6db"
+git-tree-sha1 = "4ba3651d33ef76e24fef6a598b63ffd1c5e1cd17"
 uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
-version = "1.92.3"
+version = "1.92.5"
 
 [[Qt5Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "xkbcommon_jll"]
@@ -839,6 +908,12 @@ deps = ["Random", "Requires"]
 git-tree-sha1 = "043da614cc7e95c703498a491e2c21f58a2b8111"
 uuid = "e6cf234a-135c-5ec9-84dd-332b85af5143"
 version = "1.5.3"
+
+[[RealDot]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "9f0a1b71baaf7650f4fa8a1d168c7fb6ee41f0c9"
+uuid = "c1ae055f-0cd5-4b69-90a6-9a35b1a98df9"
+version = "0.1.0"
 
 [[RecipesBase]]
 git-tree-sha1 = "44a75aa7a527910ee3d1751d1f0e4148698add9e"
@@ -905,9 +980,9 @@ version = "1.8.0"
 
 [[Static]]
 deps = ["IfElse"]
-git-tree-sha1 = "a8f30abc7c64a39d389680b74e749cf33f872a70"
+git-tree-sha1 = "e7bc80dc93f50857a5d1e3c8121495852f407e6a"
 uuid = "aedffcd0-7271-4cad-89d0-dc628f76c6d3"
-version = "0.3.3"
+version = "0.4.0"
 
 [[StaticArrays]]
 deps = ["LinearAlgebra", "Random", "Statistics"]
@@ -1233,7 +1308,9 @@ version = "0.9.1+5"
 # ╔═╡ Cell order:
 # ╟─2b86039e-ffb3-41a9-949d-c1d7c8d14a2a
 # ╟─949b109a-dee0-4d21-8a68-f372d9851f7c
-# ╠═fd49a910-94ee-485e-9c0f-4c99774ecb9c
-# ╠═20c37458-3432-11ec-217d-e77d33b17d24
+# ╠═3f2f70cc-4b66-43b9-a4e8-f1b7bfbde649
+# ╟─3ecf19af-6979-4856-9524-2571f1b3d69e
+# ╠═15bd08cb-d7fa-4221-a4dd-1e966919aad3
+# ╠═1bbfac84-1827-4a77-a76d-9ad6ecac4c32
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
