@@ -6,9 +6,17 @@ using InteractiveUtils
 
 # ╔═╡ 3f2f70cc-4b66-43b9-a4e8-f1b7bfbde649
 begin
-	# Import the needed ML libraries
+	# Needed to load the datasets correctly in the notebook
+	ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
+	
+	# Import the needed libraries
 	using CUDA
+	
 	using Flux
+	using Flux.Data: DataLoader
+	using Flux: onehotbatch, onecold, @epochs
+	using Flux.Losses: logitcrossentropy
+	
 	using MLDatasets
 	using Plots
 	using PlutoUI
@@ -16,11 +24,16 @@ end
 
 # ╔═╡ 2b86039e-ffb3-41a9-949d-c1d7c8d14a2a
 md"""
-FluxML Presentation
-===================
-Relax! Flux is the ML library that doesn't make you tensor.
-
+Classifying hand-written digits with AI using FluxML
+====================================================
 Notebook written by : Guillaume Cléroux, Université de Sherbrooke
+
+In this notebook, we will cover the basics of using Flux.jl to develop neural networks capable of doing simple tasks like identifying written numbers. This notebook assumes that you have a basic understanding of the Julia language and some notion of Machine Learning. It is mainly oriented towards people that are interested in looking at Flux.jl and it's capabilities.
+
+
+### A short word on FluxML
+###### *Relax! Flux is the ML library that doesn't make you tensor.* 
+Flux is an elegant approach to machine learning. It's a 100% pure-Julia stack, and provides lightweight abstractions on top of Julia's native GPU and AD support. Flux makes the easy things easy while remaining fully hackable.
 """
 
 # ╔═╡ 949b109a-dee0-4d21-8a68-f372d9851f7c
@@ -29,7 +42,7 @@ md"""
 Getting Started
 ---------------
 
-First, we will import the needed libraries in order to make the demonstration.
+First, we will import the needed libraries.
 
 - CUDA - Allows us to train our model on a Nvidia GPU if supported for better performance
 
@@ -41,7 +54,41 @@ First, we will import the needed libraries in order to make the demonstration.
 
 
 - Plots - A simple plotting library to visualize our data and plot our results.
+
+
+- PlutoUI - A Pluto extension needed for the interactivity aspect of this notebook
 """
+
+# ╔═╡ 10bca79d-aad4-4dae-a8c6-51d56766596c
+md"""
+## Having a first look at our data
+It is always important to have a quick look at our data before tackling a problem. It allows us to familiarize ourselves with our data and might give us a better idea on how we will try to solve it.
+
+Let's have a look at a few samples of data in the MNIST Dataset.
+"""
+
+# ╔═╡ 15bd08cb-d7fa-4221-a4dd-1e966919aad3
+let
+	# Creating a custom DataType to hold our grayscaled samples
+	struct GrayscaledImageArray
+		images::Array{Gray{Float32}, 3}
+	end
+	
+	# Overloading the get method for simpler synthax when plotting
+	Base.getindex(X::GrayscaledImageArray, i::Int64) = X.images[:, :, i]
+	
+	# Loading the training data samples
+	train_x, train_y = MNIST.traindata(Float32, 1:9)
+	
+	# Converting samples to grayscale images
+	imgs = GrayscaledImageArray([Gray.(i) for i in train_x])
+	
+	# Plotting the samples
+	plot(plot(imgs[1]), plot(imgs[2]), plot(imgs[3]),
+		 plot(imgs[4]), plot(imgs[5]), plot(imgs[6]),
+		 plot(imgs[7]), plot(imgs[8]), plot(imgs[9]), layout=(3,3))
+	
+end
 
 # ╔═╡ 3ecf19af-6979-4856-9524-2571f1b3d69e
 md"""
@@ -65,31 +112,27 @@ test\_y is the labels of the testing images
 Once we are done loading the datasets into variables, let's have a look at a few samples!
 """
 
-# ╔═╡ 15bd08cb-d7fa-4221-a4dd-1e966919aad3
-begin
-	# Needed to load the dataset correctly
-	ENV["DATADEPS_ALWAYS_ACCEPT"] = "true"
-	
-	# Loading the training data
-	train_x, train_y = MNIST.traindata(Float32)
-	
-	# Loading the test data
-	test_x, test_y = MNIST.testdata(Float32)
-	
-	# Creating an array of images for visualization
-	imgs = Matrix{Gray{Float32}}[]
-	
-	for i in 1:9
-		push!(imgs, Gray.(train_x[:, :, i]))
-	end
-	
-	# Ploting the images
-	plot(plot(imgs[1]), plot(imgs[2]), plot(imgs[3]),
-		 plot(imgs[4]), plot(imgs[5]), plot(imgs[6]),
-		 plot(imgs[7]), plot(imgs[8]), plot(imgs[9]))
-end
-
 # ╔═╡ 1bbfac84-1827-4a77-a76d-9ad6ecac4c32
+begin
+	
+	# Loading Dataset	
+    train_x, train_y = MLDatasets.MNIST.traindata(Float32)
+    test_x, test_y = MLDatasets.MNIST.testdata(Float32)
+	
+	# Reshape Data in order to flatten each image into a linear array
+    train_x = Flux.flatten(train_x)
+    test_x = Flux.flatten(test_x)
+
+    # One-hot-encode the labels
+    train_y = onehotbatch(train_y, 0:9)
+	test_y = onehotbatch(test_y, 0:9)
+
+    # Create DataLoaders (mini-batch iterators)
+    train_loader = DataLoader((train_x, train_y), batchsize = 1, shuffle = true)
+    test_loader = DataLoader((test_x, test_y), batchsize = 1)
+	
+	nothing # hide the output
+end
 
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -105,7 +148,7 @@ PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 CUDA = "~3.5.0"
 Flux = "~0.12.7"
 MLDatasets = "~0.5.12"
-Plots = "~1.23.0"
+Plots = "~1.23.1"
 PlutoUI = "~0.7.16"
 """
 
@@ -135,9 +178,9 @@ uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
 
 [[ArrayInterface]]
 deps = ["Compat", "IfElse", "LinearAlgebra", "Requires", "SparseArrays", "Static"]
-git-tree-sha1 = "49fe2b94edd1a54ac4919b33432daefd8e6c0f28"
+git-tree-sha1 = "a8101545d6b15ff1ebc927e877e28b0ab4bc4f16"
 uuid = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
-version = "3.1.35"
+version = "3.1.36"
 
 [[Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
@@ -212,9 +255,9 @@ version = "1.12.1"
 
 [[ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "0541d306de71e267c1a724f84d44bbc981f287b4"
+git-tree-sha1 = "3533f5a691e60601fe60c90d8bc47a27aa2907ec"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.10.2"
+version = "1.11.0"
 
 [[CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -316,9 +359,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DocStringExtensions]]
 deps = ["LibGit2"]
-git-tree-sha1 = "a32185f5428d3986f47c2ab78b1f216d5e6cc96f"
+git-tree-sha1 = "b19534d1895d702889b219c382a6e18010797f0b"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.8.5"
+version = "0.8.6"
 
 [[Downloads]]
 deps = ["ArgTools", "LibCURL", "NetworkOptions"]
@@ -473,9 +516,9 @@ version = "1.0.2"
 
 [[HDF5]]
 deps = ["Blosc", "Compat", "HDF5_jll", "Libdl", "Mmap", "Random", "Requires"]
-git-tree-sha1 = "83173193dc242ce4b037f0263a7cc45afb5a0b85"
+git-tree-sha1 = "698c099c6613d7b7f151832868728f426abe698b"
 uuid = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
-version = "0.15.6"
+version = "0.15.7"
 
 [[HDF5_jll]]
 deps = ["Artifacts", "JLLWrappers", "LibCURL_jll", "Libdl", "OpenSSL_jll", "Pkg", "Zlib_jll"]
@@ -853,9 +896,9 @@ version = "1.0.15"
 
 [[Plots]]
 deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "GeometryBasics", "JSON", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "PlotThemes", "PlotUtils", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "UUIDs"]
-git-tree-sha1 = "68a8a1f4d5763271d38847f0e22d67a7a61b6565"
+git-tree-sha1 = "25007065fa36f272661a0e1968761858cc880755"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-version = "1.23.0"
+version = "1.23.1"
 
 [[PlutoUI]]
 deps = ["Base64", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
@@ -974,9 +1017,9 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SpecialFunctions]]
 deps = ["ChainRulesCore", "IrrationalConstants", "LogExpFunctions", "OpenLibm_jll", "OpenSpecFun_jll"]
-git-tree-sha1 = "2d57e14cd614083f132b6224874296287bfa3979"
+git-tree-sha1 = "f0bccf98e16759818ffc5d97ac3ebf87eb950150"
 uuid = "276daf66-3868-5448-9aa4-cd146d93841b"
-version = "1.8.0"
+version = "1.8.1"
 
 [[Static]]
 deps = ["IfElse"]
@@ -1309,8 +1352,9 @@ version = "0.9.1+5"
 # ╟─2b86039e-ffb3-41a9-949d-c1d7c8d14a2a
 # ╟─949b109a-dee0-4d21-8a68-f372d9851f7c
 # ╠═3f2f70cc-4b66-43b9-a4e8-f1b7bfbde649
-# ╟─3ecf19af-6979-4856-9524-2571f1b3d69e
+# ╟─10bca79d-aad4-4dae-a8c6-51d56766596c
 # ╠═15bd08cb-d7fa-4221-a4dd-1e966919aad3
+# ╟─3ecf19af-6979-4856-9524-2571f1b3d69e
 # ╠═1bbfac84-1827-4a77-a76d-9ad6ecac4c32
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
