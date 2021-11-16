@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.16.4
+# v0.17.1
 
 using Markdown
 using InteractiveUtils
@@ -7,8 +7,9 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : missing
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
 end
@@ -74,10 +75,10 @@ md"""
 """
 
 # ╔═╡ 5f086850-8027-4d01-bf26-473ae67c0309
-lr::Float64 = 1e-3 			# Learning rate
+lr::Float64 = 1e-4 			# Learning rate
 
 # ╔═╡ fbec96b6-0a37-44a1-81d6-078e1e50ea93
-batch_size::Int64 = 1000 	# Batch_size
+batch_size::Int64 = 256 	# Batch_size
 
 # ╔═╡ 455b434f-c14e-4b04-bdfa-68592fbb5eb8
 epochs::Int64 = 50 			# Nb. epochs
@@ -249,6 +250,26 @@ with_terminal() do
 			Flux.Optimise.update!(optimizer, params, gradient)
 		end
 	end
+end
+
+# ╔═╡ 026e7260-469c-40c6-a738-42d6522746ba
+with_terminal() do
+	println("Testing the model")
+	
+	acc = 0.0
+	n = 0
+	
+	for (x, y) in test_loader
+		ŷ = model(x)
+
+		# Comparing the model's predictions with the labels
+		acc += sum(onecold(ŷ) .== onecold(y))
+
+		# keeping track of the number of pictures we tested
+		n += size(x)[2]
+	end
+
+	println("Final accuracy : ", acc/n)
 end
 
 # ╔═╡ 8f93427c-f9c4-4de5-972c-6f3e962958c4
@@ -1588,6 +1609,7 @@ version = "0.9.1+5"
 # ╠═39f36135-bfed-4ef1-9438-f979963bbf32
 # ╟─80401829-106f-4f2f-92ff-fbbc1c8cf98c
 # ╠═46c7828e-98dd-444f-8130-4de791053b83
+# ╠═026e7260-469c-40c6-a738-42d6522746ba
 # ╟─8f93427c-f9c4-4de5-972c-6f3e962958c4
 # ╟─a5494ded-78db-4994-94a7-82196d6ef689
 # ╠═b7cad210-7bbe-48ef-9ffa-89987a0b3e5c

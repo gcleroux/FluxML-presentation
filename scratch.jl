@@ -9,8 +9,6 @@ using Flux.Data: DataLoader
 using MLDatasets
 using MLDataUtils
 
-using ProgressMeter: @showprogress
-
 function get_data(args)
 
     ENV["DATADEPS_ALWAYS_ACCEPT"] = true
@@ -75,7 +73,7 @@ struct args
     use_cuda::Bool
 end
 
-hp = args(1e-2, 25, 15, true)
+hp = args(1e-2, 25, 25, true)
 
 train_loader, test_loader = get_data(hp)
 
